@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   StyleSheet, Text, View, TextInput,
-  TouchableOpacity, Alert, ActivityIndicator, ScrollView
+  TouchableOpacity, Alert, ActivityIndicator, ScrollView,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import { useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../services/supabase';
 
 export default function NuevoCorteScreen() {
@@ -12,69 +13,62 @@ export default function NuevoCorteScreen() {
   const [servicios, setServicios] = useState([]);
 
   const [clienteId, setClienteId] = useState('');
-  const [barberoId, setBarberoId] = useState('');
   const [tipoCorteId, setTipoCorteId] = useState('');
   const [monto, setMonto] = useState('');
   const [metodoPago, setMetodoPago] = useState('Efectivo');
   const [notas, setNotas] = useState('');
   const [guardando, setGuardando] = useState(false);
 
-  useEffect(() => {
-    obtenerBarberoAutenticado();
-    cargarClientes();
-    cargarServicios();
-  }, []);
+  // Recarga los datos cada vez que entras a esta pantalla
+  useFocusEffect(
+    useCallback(() => {
+      cargarDatos();
+    }, [])
+  );
 
-  async function obtenerBarberoAutenticado() {
+  async function cargarDatos() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data, error } = await supabase
-          .from('barbero')
-          .select('*')
-          .eq('auth_id', user.id)
-          .single();
-        if (error) throw error;
-        if (data) {
-          setBarberoActual(data);
-          setBarberoId(data.id.toString());
-        }
-      }
+      if (!user) return;
+
+      const { data: barbero, error: errorBarbero } = await supabase
+        .from('barbero')
+        .select('*')
+        .eq('auth_id', user.id)
+        .single();
+
+      if (errorBarbero || !barbero) throw new Error('No se encontró tu perfil de barbero.');
+      setBarberoActual(barbero);
+
+      const [resClientes, resServicios] = await Promise.all([
+        supabase.from('cliente').select('*').eq('barbero_id', barbero.id).order('nombre'),
+        supabase.from('tipo_corte').select('*').eq('barbero_id', barbero.id).order('nombre'),
+      ]);
+
+      if (resClientes.error) throw resClientes.error;
+      if (resServicios.error) throw resServicios.error;
+
+      setClientes(resClientes.data || []);
+      setServicios(resServicios.data || []);
     } catch (err) {
-      console.log('Error al obtener barbero:', err.message);
+      Alert.alert('Error', err.message);
     }
   }
-
-async function cargarClientes() {
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data: barbero } = await supabase
-    .from('barbero').select('id').eq('auth_id', user.id).single();
-  const { data } = await supabase
-    .from('cliente').select('*')
-    .eq('barbero_id', barbero.id).order('nombre');
-  setClientes(data || []);
-}
-
-async function cargarServicios() {
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data: barbero } = await supabase
-    .from('barbero').select('id').eq('auth_id', user.id).single();
-  const { data } = await supabase
-    .from('tipo_corte').select('*')
-    .eq('barbero_id', barbero.id).order('nombre');
-  setServicios(data || []);
-}
 
   async function guardarCita() {
     if (!tipoCorteId || !monto) {
       Alert.alert('Atención', 'Selecciona el servicio e ingresa el monto.');
       return;
     }
+    if (!barberoActual) {
+      Alert.alert('Error', 'No se pudo identificar al barbero. Intenta de nuevo.');
+      return;
+    }
     try {
       setGuardando(true);
       const { error } = await supabase.from('cita').insert([{
         cliente_id: clienteId ? parseInt(clienteId) : null,
-        barbero_id: barberoId ? parseInt(barberoId) : null,
+        barbero_id: barberoActual.id,
         tipo_corte_id: parseInt(tipoCorteId),
         monto: parseFloat(monto),
         metodo_pago: metodoPago,
@@ -103,10 +97,15 @@ async function cargarServicios() {
 
       <Text style={styles.label}>Cliente</Text>
       <View style={styles.pickerContainer}>
-        <Picker selectedValue={clienteId} onValueChange={setClienteId}>
-          <Picker.Item label="Cliente General" value="" />
-          {clientes.map(c => (
-            <Picker.Item key={c.id} label={c.nombre} value={c.id.toString()} />
+        <Picker
+          selectedValue={clienteId}
+          onValueChange={setClienteId}
+          style={styles.picker}
+          dropdownIconColor="#000"
+        >
+          <Picker.Item label="Cliente General" value="" color="#000" />
+          {clientes.map((c) => (
+            <Picker.Item key={c.id} label={c.nombre} value={c.id.toString()} color="#000" />
           ))}
         </Picker>
       </View>
@@ -114,17 +113,18 @@ async function cargarServicios() {
       <Text style={styles.label}>Servicio *</Text>
       <View style={styles.pickerContainer}>
         <Picker
-  selectedValue={tipoCorteId}
-  onValueChange={(value) => {
-    setTipoCorteId(value);
-    const servicio = servicios.find(s => s.id.toString() === value);
-    if (servicio) setMonto(servicio.precio.toString());
-    else setMonto('');
-  }}
->
-          <Picker.Item label="Seleccionar servicio..." value="" />
-          {servicios.map(s => (
-            <Picker.Item key={s.id} label={s.nombre} value={s.id.toString()} />
+          selectedValue={tipoCorteId}
+          onValueChange={(value) => {
+            setTipoCorteId(value);
+            const servicio = servicios.find((s) => s.id.toString() === value);
+            setMonto(servicio ? servicio.precio.toString() : '');
+          }}
+          style={styles.picker}
+          dropdownIconColor="#000"
+        >
+          <Picker.Item label="Seleccionar servicio..." value="" color="#000" />
+          {servicios.map((s) => (
+            <Picker.Item key={s.id} label={s.nombre} value={s.id.toString()} color="#000" />
           ))}
         </Picker>
       </View>
@@ -133,6 +133,7 @@ async function cargarServicios() {
       <TextInput
         style={styles.input}
         placeholder="0"
+        placeholderTextColor="#999"
         keyboardType="numeric"
         value={monto}
         onChangeText={setMonto}
@@ -140,17 +141,23 @@ async function cargarServicios() {
 
       <Text style={styles.label}>Método de Pago</Text>
       <View style={styles.pickerContainer}>
-        <Picker selectedValue={metodoPago} onValueChange={setMetodoPago}>
-          <Picker.Item label="Efectivo" value="Efectivo" />
-          <Picker.Item label="Transferencia" value="Transferencia" />
-          <Picker.Item label="Débito" value="Débito" />
+        <Picker
+          selectedValue={metodoPago}
+          onValueChange={setMetodoPago}
+          style={styles.picker}
+          dropdownIconColor="#000"
+        >
+          <Picker.Item label="Efectivo" value="Efectivo" color="#000" />
+          <Picker.Item label="Transferencia" value="Transferencia" color="#000" />
+          <Picker.Item label="Débito" value="Débito" color="#000" />
         </Picker>
       </View>
 
       <Text style={styles.label}>Notas (Opcional)</Text>
       <TextInput
-        style={[styles.input, { height: 80 }]}
+        style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
         placeholder="Observaciones..."
+        placeholderTextColor="#999"
         multiline
         value={notas}
         onChangeText={setNotas}
@@ -163,8 +170,7 @@ async function cargarServicios() {
       >
         {guardando
           ? <ActivityIndicator color="#FFF" />
-          : <Text style={styles.btnTexto}>Registrar Atención</Text>
-        }
+          : <Text style={styles.btnTexto}>Registrar Atención</Text>}
       </TouchableOpacity>
     </ScrollView>
   );
@@ -175,8 +181,18 @@ const styles = StyleSheet.create({
   titulo: { fontSize: 22, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 5 },
   barberoInfo: { fontSize: 14, color: '#666', marginBottom: 15 },
   label: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 5, marginTop: 10 },
-  input: { backgroundColor: '#FFF', borderWidth: 1, borderColor: '#DDD', borderRadius: 8, padding: 12, fontSize: 16 },
-  pickerContainer: { backgroundColor: '#FFF', borderWidth: 1, borderColor: '#DDD', borderRadius: 8, marginBottom: 5 },
-  btnGuardar: { backgroundColor: '#007AFF', padding: 15, borderRadius: 8, alignItems: 'center', marginTop: 20, marginBottom: 40 },
+  input: {
+    backgroundColor: '#FFF', borderWidth: 1, borderColor: '#DDD',
+    borderRadius: 8, padding: 12, fontSize: 16, color: '#000',
+  },
+  pickerContainer: {
+    backgroundColor: '#FFF', borderWidth: 1, borderColor: '#DDD',
+    borderRadius: 8, marginBottom: 5,
+  },
+  picker: { color: '#000' },
+  btnGuardar: {
+    backgroundColor: '#007AFF', padding: 15, borderRadius: 8,
+    alignItems: 'center', marginTop: 20, marginBottom: 40,
+  },
   btnTexto: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
 });
