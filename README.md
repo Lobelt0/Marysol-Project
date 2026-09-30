@@ -45,6 +45,8 @@ El modelo incluye protecciones específicas para evitar que la contabilidad del 
 
 # Estructura del proyecto
 
+```
+
 Marysol-Project/
 ├── assets/                  # Imágenes, iconos y fuentes del proyecto
 ├── src/                     # Todo el código fuente de tu aplicación
@@ -60,3 +62,5 @@ Marysol-Project/
 ├── app.json                 # Configuración del proyecto en Expo
 ├── package.json             # Dependencias del proyecto
 └── README.md                # Documentación del repositorio
+
+```
