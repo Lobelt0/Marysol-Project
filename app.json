@@ -22,7 +22,9 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.lobelto.marysolproject"
+      "package": "com.lobelto.marysolproject",
+      "userInterfaceStyle": "light",
+      "backgroundColor": "#ffffff"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -33,7 +35,8 @@
       }
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+      "expo-system-ui"
     ]
   }
 }
