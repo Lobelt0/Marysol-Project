@@ -92,12 +92,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        onPress={() => supabase.auth.signOut()}
-        style={{ alignItems: 'flex-end', marginBottom: 5 }}
-      >
-        <Text style={{ color: 'red', fontSize: 13 }}>Cerrar Sesión</Text>
-      </TouchableOpacity>
+
 
       <Text style={styles.titulo}>Resumen del Día</Text>
 
