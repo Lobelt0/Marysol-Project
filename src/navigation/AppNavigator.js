@@ -130,7 +130,7 @@ export default function AppNavigator() {
         })}
       >
         <Tab.Screen name="Inicio" component={HomeScreen} options={{ title: 'Resumen' }} />
-        <Tab.Screen name="NuevoCorte" component={NuevoCorteScreen} options={{ title: '+ Registrar' }} />
+        <Tab.Screen name="NuevoCorte" component={NuevoCorteScreen} options={{ title: 'Registrar' }} />
         <Tab.Screen name="Reportes" component={ReportesScreen} options={{ title: 'Reportes' }} />
         <Tab.Screen name="Servicios" component={ServiciosScreen} options={{ title: 'Servicios' }} />
         <Tab.Screen name="Clientes" component={ClientesScreen} options={{ title: 'Clientes' }} />

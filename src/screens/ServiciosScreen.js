@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { supabase } from '../services/supabase';
 import { useTheme } from '../theme/ThemeContext';
+import { formatearMoneda } from '../utils/fechas';
 
 export default function ServiciosScreen() {
   const { colors } = useTheme();
@@ -13,6 +14,7 @@ export default function ServiciosScreen() {
   const [servicios, setServicios] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
+  const [editando, setEditando] = useState(null); // null = nuevo, objeto = editar
   const [nombre, setNombre] = useState('');
   const [precio, setPrecio] = useState('');
   const [guardando, setGuardando] = useState(false);
@@ -41,6 +43,7 @@ export default function ServiciosScreen() {
         .from('tipo_corte')
         .select('*')
         .eq('barbero_id', barbero.id)
+        .eq('activo', true)
         .order('nombre');
 
       if (errorServicios) throw errorServicios;
@@ -52,22 +55,42 @@ export default function ServiciosScreen() {
     }
   }
 
-  async function agregarServicio() {
-    if (!nombre.trim() || !precio.trim()) {
-      Alert.alert('Atención', 'Ingresa nombre y precio.');
+  function abrirNuevo() {
+    setEditando(null);
+    setNombre('');
+    setPrecio('');
+    setModalVisible(true);
+  }
+
+  function abrirEdicion(item) {
+    setEditando(item);
+    setNombre(item.nombre);
+    setPrecio(String(item.precio));
+    setModalVisible(true);
+  }
+
+  async function guardar() {
+    const precioNum = parseInt(precio, 10);
+    if (!nombre.trim() || isNaN(precioNum) || precioNum < 0) {
+      Alert.alert('Atención', 'Ingresa un nombre y un precio válido.');
       return;
     }
     try {
       setGuardando(true);
-      const { error } = await supabase.from('tipo_corte').insert([{
-        nombre: nombre.trim(),
-        precio: parseInt(precio),
-        barbero_id: barberoId,
-      }]);
-      if (error) throw error;
-      Alert.alert('Éxito', 'Servicio agregado.');
-      setNombre('');
-      setPrecio('');
+      if (editando) {
+        const { error } = await supabase
+          .from('tipo_corte')
+          .update({ nombre: nombre.trim(), precio: precioNum })
+          .eq('id', editando.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('tipo_corte').insert([{
+          nombre: nombre.trim(),
+          precio: precioNum,
+          barbero_id: barberoId,
+        }]);
+        if (error) throw error;
+      }
       setModalVisible(false);
       obtenerBarberoYServicios();
     } catch (err) {
@@ -77,14 +100,43 @@ export default function ServiciosScreen() {
     }
   }
 
+  function confirmarArchivar() {
+    Alert.alert(
+      'Eliminar Servicio/Corte',
+      `"${editando.nombre}" dejará de aparecer al registrar atenciones. El historial y los reportes se mantienen.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Archivar', style: 'destructive', onPress: archivar },
+      ]
+    );
+  }
+
+  async function archivar() {
+    try {
+      const { error } = await supabase
+        .from('tipo_corte')
+        .update({ activo: false })
+        .eq('id', editando.id);
+      if (error) throw error;
+      setModalVisible(false);
+      obtenerBarberoYServicios();
+    } catch (err) {
+      Alert.alert('Error', err.message);
+    }
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.titulo}>Mis Servicios</Text>
-        <TouchableOpacity style={styles.btnAgregar} onPress={() => setModalVisible(true)}>
+        <TouchableOpacity style={styles.btnAgregar} onPress={abrirNuevo}>
           <Text style={styles.btnTexto}>+ Nuevo</Text>
         </TouchableOpacity>
       </View>
+
+      {servicios.length > 0 && (
+        <Text style={styles.ayuda}>Toca un servicio para editarlo o eliminarlo</Text>
+      )}
 
       {cargando ? (
         <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 20 }} />
@@ -93,10 +145,10 @@ export default function ServiciosScreen() {
           data={servicios}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
-            <View style={styles.card}>
+            <TouchableOpacity style={styles.card} onPress={() => abrirEdicion(item)}>
               <Text style={styles.nombreServicio}>{item.nombre}</Text>
-              <Text style={styles.precioServicio}>${item.precio.toLocaleString()}</Text>
-            </View>
+              <Text style={styles.precioServicio}>{formatearMoneda(item.precio)}</Text>
+            </TouchableOpacity>
           )}
           ListEmptyComponent={
             <Text style={styles.emptyText}>No tienes servicios registrados.</Text>
@@ -104,10 +156,17 @@ export default function ServiciosScreen() {
         />
       )}
 
-      <Modal visible={modalVisible} animationType="slide" transparent>
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setModalVisible(false)}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <Text style={styles.modalTitulo}>Nuevo Servicio</Text>
+            <Text style={styles.modalTitulo}>
+              {editando ? 'Editar Servicio' : 'Nuevo Servicio'}
+            </Text>
             <TextInput
               style={styles.input}
               placeholder="Nombre del servicio *"
@@ -132,7 +191,7 @@ export default function ServiciosScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.btnModal, styles.btnGuardar]}
-                onPress={agregarServicio}
+                onPress={guardar}
                 disabled={guardando}
               >
                 <Text style={{ color: '#FFF', fontWeight: 'bold' }}>
@@ -140,6 +199,12 @@ export default function ServiciosScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
+
+            {editando && (
+              <TouchableOpacity style={styles.btnArchivar} onPress={confirmarArchivar}>
+                <Text style={{ color: colors.danger, fontWeight: '600' }}>Eliminar servicio</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </Modal>
@@ -150,8 +215,9 @@ export default function ServiciosScreen() {
 const crearEstilos = (c) =>
   StyleSheet.create({
     container: { flex: 1, paddingHorizontal: 20, paddingTop: 20, backgroundColor: c.background },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
     titulo: { fontSize: 22, fontWeight: 'bold', color: c.text },
+    ayuda: { fontSize: 12, color: c.textSecondary, marginBottom: 12 },
     btnAgregar: { backgroundColor: c.primary, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
     btnTexto: { color: '#FFF', fontWeight: 'bold' },
     card: {
@@ -171,5 +237,6 @@ const crearEstilos = (c) =>
     btnModal: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, marginLeft: 10 },
     btnCancelar: { backgroundColor: c.btnSecondary },
     btnGuardar: { backgroundColor: c.primary },
+    btnArchivar: { alignItems: 'center', marginTop: 18 },
     emptyText: { textAlign: 'center', color: c.textSecondary, marginTop: 30 },
   });

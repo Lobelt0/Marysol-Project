@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Marysol-Project",
+    "name": "Mar & Sol",
     "slug": "marysol-project",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -15,7 +15,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#1A1A1A"
       },
       "package": "com.lobelto.marysolproject",
       "userInterfaceStyle": "automatic",

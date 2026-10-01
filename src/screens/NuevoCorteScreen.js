@@ -46,7 +46,7 @@ export default function NuevoCorteScreen() {
 
       const [resClientes, resServicios] = await Promise.all([
         supabase.from('cliente').select('*').eq('barbero_id', barbero.id).order('nombre'),
-        supabase.from('tipo_corte').select('*').eq('barbero_id', barbero.id).order('nombre'),
+        supabase.from('tipo_corte').select('*').eq('barbero_id', barbero.id).eq('activo', true).order('nombre'),
       ]);
 
       if (resClientes.error) throw resClientes.error;

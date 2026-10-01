@@ -5,6 +5,10 @@ import {
 } from 'react-native';
 import { supabase } from '../services/supabase';
 import { useTheme } from '../theme/ThemeContext';
+import FichaCliente from '../components/FichaCliente';
+
+const normalizar = (t) =>
+  (t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 export default function ClientesScreen() {
   const { colors } = useTheme();
@@ -17,6 +21,8 @@ export default function ClientesScreen() {
   const [telefono, setTelefono] = useState('');
   const [guardando, setGuardando] = useState(false);
   const [barberoId, setBarberoId] = useState(null);
+  const [busqueda, setBusqueda] = useState('');
+  const [seleccionado, setSeleccionado] = useState(null);
 
   useEffect(() => {
     obtenerBarberoYClientes();
@@ -77,6 +83,17 @@ export default function ClientesScreen() {
     }
   }
 
+  const filtrados = useMemo(() => {
+    const q = normalizar(busqueda.trim());
+    if (!q) return clientes;
+    const qTel = q.replace(/\s/g, '');
+    return clientes.filter(
+      (c) =>
+        normalizar(c.nombre).includes(q) ||
+        (c.telefono || '').replace(/\s/g, '').includes(qTel)
+    );
+  }, [clientes, busqueda]);
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -86,25 +103,51 @@ export default function ClientesScreen() {
         </TouchableOpacity>
       </View>
 
+      <TextInput
+        style={styles.buscador}
+        placeholder="Buscar por nombre o teléfono"
+        placeholderTextColor={colors.placeholder}
+        value={busqueda}
+        onChangeText={setBusqueda}
+        clearButtonMode="while-editing"
+        autoCorrect={false}
+      />
+
       {cargando ? (
         <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 20 }} />
       ) : (
         <FlatList
-          data={clientes}
+          data={filtrados}
           keyExtractor={(item) => item.id.toString()}
+          keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => (
-            <View style={styles.card}>
-              <Text style={styles.nombre}>{item.nombre}</Text>
-              <Text style={styles.telefono}>{item.telefono || 'Sin teléfono'}</Text>
-            </View>
+            <TouchableOpacity style={styles.card} onPress={() => setSeleccionado(item)}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.nombre}>{item.nombre}</Text>
+                <Text style={styles.telefono}>{item.telefono || 'Sin teléfono'}</Text>
+              </View>
+            </TouchableOpacity>
           )}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>No tienes clientes registrados.</Text>
+            <Text style={styles.emptyText}>
+              {busqueda ? 'Sin resultados.' : 'No tienes clientes registrados.'}
+            </Text>
           }
         />
       )}
 
-      <Modal visible={modalVisible} animationType="slide" transparent>
+      <FichaCliente
+        cliente={seleccionado}
+        onCerrar={() => setSeleccionado(null)}
+        onCambio={obtenerBarberoYClientes}
+      />
+
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setModalVisible(false)}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitulo}>Nuevo Cliente</Text>
@@ -150,11 +193,19 @@ export default function ClientesScreen() {
 const crearEstilos = (c) =>
   StyleSheet.create({
     container: { flex: 1, paddingHorizontal: 20, paddingTop: 20, backgroundColor: c.background },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
     titulo: { fontSize: 22, fontWeight: 'bold', color: c.text },
     btnAgregar: { backgroundColor: c.primary, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
     btnTexto: { color: '#FFF', fontWeight: 'bold' },
-    card: { backgroundColor: c.card, padding: 14, borderRadius: 10, marginBottom: 10, elevation: 1 },
+    buscador: {
+      backgroundColor: c.inputBg, borderWidth: 1, borderColor: c.border,
+      borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
+      marginBottom: 12, color: c.text, fontSize: 15,
+    },
+    card: {
+      backgroundColor: c.card, padding: 14, borderRadius: 10, marginBottom: 10,
+      elevation: 1, flexDirection: 'row', alignItems: 'center',
+    },
     nombre: { fontSize: 16, fontWeight: 'bold', color: c.text },
     telefono: { fontSize: 14, color: c.textSecondary, marginTop: 2 },
     modalOverlay: { flex: 1, backgroundColor: c.overlay, justifyContent: 'center', alignItems: 'center' },

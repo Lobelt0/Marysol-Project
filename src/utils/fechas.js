@@ -38,3 +38,8 @@ export function formatoCorto(n) {
   if (v >= 1000) return (v / 1000).toFixed(1).replace('.0', '') + 'k';
   return String(Math.round(v));
 }
+
+export function formatoFecha(fecha) {
+  const d = new Date(fecha);
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+}
