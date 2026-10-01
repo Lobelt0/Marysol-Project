@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   StyleSheet, Text, View, TextInput,
   TouchableOpacity, Alert, ActivityIndicator, ScrollView,
@@ -6,8 +6,13 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import { useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../services/supabase';
+import { useTheme } from '../theme/ThemeContext';
 
 export default function NuevoCorteScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => crearEstilos(colors), [colors]);
+  const itemProps = { color: colors.text, style: { backgroundColor: colors.inputBg } };
+
   const [barberoActual, setBarberoActual] = useState(null);
   const [clientes, setClientes] = useState([]);
   const [servicios, setServicios] = useState([]);
@@ -19,7 +24,6 @@ export default function NuevoCorteScreen() {
   const [notas, setNotas] = useState('');
   const [guardando, setGuardando] = useState(false);
 
-  // Recarga los datos cada vez que entras a esta pantalla
   useFocusEffect(
     useCallback(() => {
       cargarDatos();
@@ -101,11 +105,11 @@ export default function NuevoCorteScreen() {
           selectedValue={clienteId}
           onValueChange={setClienteId}
           style={styles.picker}
-          dropdownIconColor="#000"
+          dropdownIconColor={colors.text}
         >
-          <Picker.Item label="Cliente General" value="" color="#000" />
+          <Picker.Item label="Cliente General" value="" {...itemProps} />
           {clientes.map((c) => (
-            <Picker.Item key={c.id} label={c.nombre} value={c.id.toString()} color="#000" />
+            <Picker.Item key={c.id} label={c.nombre} value={c.id.toString()} {...itemProps} />
           ))}
         </Picker>
       </View>
@@ -120,11 +124,11 @@ export default function NuevoCorteScreen() {
             setMonto(servicio ? servicio.precio.toString() : '');
           }}
           style={styles.picker}
-          dropdownIconColor="#000"
+          dropdownIconColor={colors.text}
         >
-          <Picker.Item label="Seleccionar servicio..." value="" color="#000" />
+          <Picker.Item label="Seleccionar servicio..." value="" {...itemProps} />
           {servicios.map((s) => (
-            <Picker.Item key={s.id} label={s.nombre} value={s.id.toString()} color="#000" />
+            <Picker.Item key={s.id} label={s.nombre} value={s.id.toString()} {...itemProps} />
           ))}
         </Picker>
       </View>
@@ -133,7 +137,7 @@ export default function NuevoCorteScreen() {
       <TextInput
         style={styles.input}
         placeholder="0"
-        placeholderTextColor="#999"
+        placeholderTextColor={colors.placeholder}
         keyboardType="numeric"
         value={monto}
         onChangeText={setMonto}
@@ -145,11 +149,11 @@ export default function NuevoCorteScreen() {
           selectedValue={metodoPago}
           onValueChange={setMetodoPago}
           style={styles.picker}
-          dropdownIconColor="#000"
+          dropdownIconColor={colors.text}
         >
-          <Picker.Item label="Efectivo" value="Efectivo" color="#000" />
-          <Picker.Item label="Transferencia" value="Transferencia" color="#000" />
-          <Picker.Item label="Débito" value="Débito" color="#000" />
+          <Picker.Item label="Efectivo" value="Efectivo" {...itemProps} />
+          <Picker.Item label="Transferencia" value="Transferencia" {...itemProps} />
+          <Picker.Item label="Débito" value="Débito" {...itemProps} />
         </Picker>
       </View>
 
@@ -157,17 +161,13 @@ export default function NuevoCorteScreen() {
       <TextInput
         style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
         placeholder="Observaciones..."
-        placeholderTextColor="#999"
+        placeholderTextColor={colors.placeholder}
         multiline
         value={notas}
         onChangeText={setNotas}
       />
 
-      <TouchableOpacity
-        style={styles.btnGuardar}
-        onPress={guardarCita}
-        disabled={guardando}
-      >
+      <TouchableOpacity style={styles.btnGuardar} onPress={guardarCita} disabled={guardando}>
         {guardando
           ? <ActivityIndicator color="#FFF" />
           : <Text style={styles.btnTexto}>Registrar Atención</Text>}
@@ -176,23 +176,24 @@ export default function NuevoCorteScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 20, paddingTop: 20, backgroundColor: '#F8F9FA' },
-  titulo: { fontSize: 22, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 5 },
-  barberoInfo: { fontSize: 14, color: '#666', marginBottom: 15 },
-  label: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 5, marginTop: 10 },
-  input: {
-    backgroundColor: '#FFF', borderWidth: 1, borderColor: '#DDD',
-    borderRadius: 8, padding: 12, fontSize: 16, color: '#000',
-  },
-  pickerContainer: {
-    backgroundColor: '#FFF', borderWidth: 1, borderColor: '#DDD',
-    borderRadius: 8, marginBottom: 5,
-  },
-  picker: { color: '#000' },
-  btnGuardar: {
-    backgroundColor: '#007AFF', padding: 15, borderRadius: 8,
-    alignItems: 'center', marginTop: 20, marginBottom: 40,
-  },
-  btnTexto: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
-});
+const crearEstilos = (c) =>
+  StyleSheet.create({
+    container: { flex: 1, paddingHorizontal: 20, paddingTop: 20, backgroundColor: c.background },
+    titulo: { fontSize: 22, fontWeight: 'bold', color: c.text, marginBottom: 5 },
+    barberoInfo: { fontSize: 14, color: c.textSecondary, marginBottom: 15 },
+    label: { fontSize: 14, fontWeight: '600', color: c.text, marginBottom: 5, marginTop: 10 },
+    input: {
+      backgroundColor: c.inputBg, borderWidth: 1, borderColor: c.border,
+      borderRadius: 8, padding: 12, fontSize: 16, color: c.text,
+    },
+    pickerContainer: {
+      backgroundColor: c.inputBg, borderWidth: 1, borderColor: c.border,
+      borderRadius: 8, marginBottom: 5,
+    },
+    picker: { color: c.text },
+    btnGuardar: {
+      backgroundColor: c.primary, padding: 15, borderRadius: 8,
+      alignItems: 'center', marginTop: 20, marginBottom: 40,
+    },
+    btnTexto: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
+  });

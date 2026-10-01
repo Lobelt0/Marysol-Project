@@ -1,12 +1,16 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   StyleSheet, Text, View, FlatList, ActivityIndicator,
   RefreshControl, TouchableOpacity, Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../services/supabase';
+import { useTheme } from '../theme/ThemeContext';
 
 export default function HomeScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => crearEstilos(colors), [colors]);
+
   const [citasHoy, setCitasHoy] = useState([]);
   const [totalIngresos, setTotalIngresos] = useState(0);
   const [cargando, setCargando] = useState(true);
@@ -39,7 +43,7 @@ export default function HomeScreen() {
 
   async function cargarDatos() {
     try {
-      const id = barberoId ?? await obtenerBarberoId();
+      const id = barberoId ?? (await obtenerBarberoId());
       if (!id) return;
       setBarberoId(id);
 
@@ -92,8 +96,6 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-
-
       <Text style={styles.titulo}>Resumen del Día</Text>
 
       <View style={styles.metricsContainer}>
@@ -110,13 +112,19 @@ export default function HomeScreen() {
       <Text style={styles.subtitulo}>Atenciones Recientes (Mantén para anular)</Text>
 
       {cargando && !refreshing ? (
-        <ActivityIndicator size="large" color="#007AFF" style={{ marginTop: 20 }} />
+        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 20 }} />
       ) : (
         <FlatList
           data={citasHoy}
           keyExtractor={(item) => item.id.toString()}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={cargarDatos} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={cargarDatos}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
+              progressBackgroundColor={colors.card}
+            />
           }
           renderItem={({ item }) => (
             <TouchableOpacity
@@ -130,9 +138,7 @@ export default function HomeScreen() {
                 <Text style={styles.barberoNombre}>
                   Cliente: {item.cliente?.nombre || 'Cliente General'}
                 </Text>
-                <Text style={styles.barberoNombre}>
-                  Método: {item.metodo_pago}
-                </Text>
+                <Text style={styles.barberoNombre}>Método: {item.metodo_pago}</Text>
               </View>
               <Text style={styles.monto}>${item.monto || 0}</Text>
             </TouchableOpacity>
@@ -146,20 +152,21 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 20, paddingTop: 20, backgroundColor: '#F8F9FA' },
-  titulo: { fontSize: 24, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 16 },
-  subtitulo: { fontSize: 15, fontWeight: '600', color: '#666', marginBottom: 12, marginTop: 10 },
-  metricsContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
-  metricCard: { flex: 0.48, backgroundColor: '#FFF', padding: 16, borderRadius: 12, elevation: 2 },
-  metricLabel: { fontSize: 13, color: '#666', marginBottom: 4 },
-  metricValue: { fontSize: 22, fontWeight: 'bold', color: '#007AFF' },
-  card: {
-    backgroundColor: '#FFF', padding: 14, borderRadius: 10, marginBottom: 10,
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', elevation: 1,
-  },
-  servicioNombre: { fontSize: 16, fontWeight: 'bold', color: '#333' },
-  barberoNombre: { fontSize: 13, color: '#666', marginTop: 2 },
-  monto: { fontSize: 16, fontWeight: 'bold', color: '#2E7D32' },
-  emptyText: { textAlign: 'center', color: '#888', marginTop: 30 },
-});
+const crearEstilos = (c) =>
+  StyleSheet.create({
+    container: { flex: 1, paddingHorizontal: 20, paddingTop: 20, backgroundColor: c.background },
+    titulo: { fontSize: 24, fontWeight: 'bold', color: c.text, marginBottom: 16 },
+    subtitulo: { fontSize: 15, fontWeight: '600', color: c.textSecondary, marginBottom: 12, marginTop: 10 },
+    metricsContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
+    metricCard: { flex: 0.48, backgroundColor: c.card, padding: 16, borderRadius: 12, elevation: 2 },
+    metricLabel: { fontSize: 13, color: c.textSecondary, marginBottom: 4 },
+    metricValue: { fontSize: 22, fontWeight: 'bold', color: c.primary },
+    card: {
+      backgroundColor: c.card, padding: 14, borderRadius: 10, marginBottom: 10,
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', elevation: 1,
+    },
+    servicioNombre: { fontSize: 16, fontWeight: 'bold', color: c.text },
+    barberoNombre: { fontSize: 13, color: c.textSecondary, marginTop: 2 },
+    monto: { fontSize: 16, fontWeight: 'bold', color: c.success },
+    emptyText: { textAlign: 'center', color: c.textSecondary, marginTop: 30 },
+  });

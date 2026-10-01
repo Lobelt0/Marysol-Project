@@ -18,7 +18,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.lobelto.marysolproject",
-      "userInterfaceStyle": "light",
+      "userInterfaceStyle": "automatic",
       "backgroundColor": "#ffffff"
     },
     "web": {

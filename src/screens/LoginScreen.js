@@ -1,17 +1,15 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
-  StyleSheet,
-  Text,
-  View,
-  TextInput,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
+  StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, ActivityIndicator,
 } from 'react-native';
 import { supabase } from '../services/supabase';
+import { useTheme } from '../theme/ThemeContext';
 
 export default function LoginScreen() {
-  const [nombre, setNombre] = useState(''); // Campo nombre para el barbero
+  const { colors } = useTheme();
+  const styles = useMemo(() => crearEstilos(colors), [colors]);
+
+  const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [cargando, setCargando] = useState(false);
@@ -32,31 +30,31 @@ export default function LoginScreen() {
       setCargando(true);
 
       if (esRegistro) {
-  const { data: authData, error: authError } = await supabase.auth.signUp({
-    email: email.trim(),
-    password: password,
-  });
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: email.trim(),
+          password: password,
+        });
 
-  if (authError) throw new Error(authError.message);
+        if (authError) throw new Error(authError.message);
 
-  const user = authData?.user;
-  if (!user) throw new Error('No se pudo crear el usuario. Intenta de nuevo.');
+        const user = authData?.user;
+        if (!user) throw new Error('No se pudo crear el usuario. Intenta de nuevo.');
 
-  // Esperar un momento para que Auth procese el usuario
-  await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
 
-  const { error: barberoError } = await supabase.from('barbero').insert([{
-    nombre: nombre.trim(),
-    correo: email.trim(),
-    auth_id: user.id,
-  }]);
+        const { error: barberoError } = await supabase.from('barbero').insert([
+          {
+            nombre: nombre.trim(),
+            correo: email.trim(),
+            auth_id: user.id,
+          },
+        ]);
 
-  if (barberoError) throw new Error(barberoError.message);
+        if (barberoError) throw new Error(barberoError.message);
 
-  Alert.alert('Éxito', 'Cuenta creada correctamente. Ya puedes ingresar.');
-  setEsRegistro(false);
-} else {
-        // Inicio de sesión normal
+        Alert.alert('Éxito', 'Cuenta de barbero registrada correctamente. Ya puedes ingresar.');
+        setEsRegistro(false);
+      } else {
         const { error } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password: password,
@@ -82,6 +80,7 @@ export default function LoginScreen() {
         <TextInput
           style={styles.input}
           placeholder="Nombre completo (Barbero) *"
+          placeholderTextColor={colors.placeholder}
           value={nombre}
           onChangeText={setNombre}
         />
@@ -90,6 +89,7 @@ export default function LoginScreen() {
       <TextInput
         style={styles.input}
         placeholder="Correo electrónico *"
+        placeholderTextColor={colors.placeholder}
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
@@ -99,16 +99,13 @@ export default function LoginScreen() {
       <TextInput
         style={styles.input}
         placeholder="Contraseña *"
+        placeholderTextColor={colors.placeholder}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
       />
 
-      <TouchableOpacity
-        style={styles.btnPrincipal}
-        onPress={handleAuth}
-        disabled={cargando}
-      >
+      <TouchableOpacity style={styles.btnPrincipal} onPress={handleAuth} disabled={cargando}>
         {cargando ? (
           <ActivityIndicator color="#FFF" />
         ) : (
@@ -118,10 +115,7 @@ export default function LoginScreen() {
         )}
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.btnModo}
-        onPress={() => setEsRegistro(!esRegistro)}
-      >
+      <TouchableOpacity style={styles.btnModo} onPress={() => setEsRegistro(!esRegistro)}>
         <Text style={styles.modoTexto}>
           {esRegistro
             ? '¿Ya tienes cuenta? Inicia sesión'
@@ -132,32 +126,34 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 25,
-    backgroundColor: '#F8F9FA',
-  },
-  titulo: { fontSize: 28, fontWeight: 'bold', color: '#1A1A1A', textAlign: 'center' },
-  subtitulo: { fontSize: 16, color: '#666', textAlign: 'center', marginBottom: 25, marginTop: 5 },
-  input: {
-    backgroundColor: '#FFF',
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 15,
-    fontSize: 16,
-  },
-  btnPrincipal: {
-    backgroundColor: '#007AFF',
-    padding: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 5,
-  },
-  btnTexto: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
-  btnModo: { marginTop: 20, alignItems: 'center' },
-  modoTexto: { color: '#007AFF', fontSize: 14 },
-});
+const crearEstilos = (c) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      justifyContent: 'center',
+      paddingHorizontal: 25,
+      backgroundColor: c.background,
+    },
+    titulo: { fontSize: 28, fontWeight: 'bold', color: c.text, textAlign: 'center' },
+    subtitulo: { fontSize: 16, color: c.textSecondary, textAlign: 'center', marginBottom: 25, marginTop: 5 },
+    input: {
+      backgroundColor: c.inputBg,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 15,
+      fontSize: 16,
+      color: c.text,
+    },
+    btnPrincipal: {
+      backgroundColor: c.primary,
+      padding: 14,
+      borderRadius: 8,
+      alignItems: 'center',
+      marginTop: 5,
+    },
+    btnTexto: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
+    btnModo: { marginTop: 20, alignItems: 'center' },
+    modoTexto: { color: c.primary, fontSize: 14 },
+  });

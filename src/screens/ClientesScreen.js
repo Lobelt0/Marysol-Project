@@ -1,11 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   StyleSheet, Text, View, FlatList, TouchableOpacity,
   Modal, TextInput, ActivityIndicator, Alert,
 } from 'react-native';
 import { supabase } from '../services/supabase';
+import { useTheme } from '../theme/ThemeContext';
 
 export default function ClientesScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => crearEstilos(colors), [colors]);
+
   const [clientes, setClientes] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
@@ -83,7 +87,7 @@ export default function ClientesScreen() {
       </View>
 
       {cargando ? (
-        <ActivityIndicator size="large" color="#007AFF" style={{ marginTop: 20 }} />
+        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 20 }} />
       ) : (
         <FlatList
           data={clientes}
@@ -107,12 +111,14 @@ export default function ClientesScreen() {
             <TextInput
               style={styles.input}
               placeholder="Nombre *"
+              placeholderTextColor={colors.placeholder}
               value={nombre}
               onChangeText={setNombre}
             />
             <TextInput
               style={styles.input}
               placeholder="Teléfono (opcional)"
+              placeholderTextColor={colors.placeholder}
               keyboardType="phone-pad"
               value={telefono}
               onChangeText={setTelefono}
@@ -122,7 +128,7 @@ export default function ClientesScreen() {
                 style={[styles.btnModal, styles.btnCancelar]}
                 onPress={() => setModalVisible(false)}
               >
-                <Text style={{ color: '#666' }}>Cancelar</Text>
+                <Text style={{ color: colors.btnSecondaryText }}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.btnModal, styles.btnGuardar]}
@@ -141,22 +147,26 @@ export default function ClientesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 20, paddingTop: 20, backgroundColor: '#F8F9FA' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-  titulo: { fontSize: 22, fontWeight: 'bold', color: '#1A1A1A' },
-  btnAgregar: { backgroundColor: '#007AFF', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
-  btnTexto: { color: '#FFF', fontWeight: 'bold' },
-  card: { backgroundColor: '#FFF', padding: 14, borderRadius: 10, marginBottom: 10, elevation: 1 },
-  nombre: { fontSize: 16, fontWeight: 'bold', color: '#333' },
-  telefono: { fontSize: 14, color: '#666', marginTop: 2 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  modalContainer: { width: '85%', backgroundColor: '#FFF', borderRadius: 12, padding: 20 },
-  modalTitulo: { fontSize: 18, fontWeight: 'bold', marginBottom: 15 },
-  input: { borderWidth: 1, borderColor: '#DDD', borderRadius: 8, padding: 10, marginBottom: 12 },
-  modalBotones: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 10 },
-  btnModal: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, marginLeft: 10 },
-  btnCancelar: { backgroundColor: '#E5E5EA' },
-  btnGuardar: { backgroundColor: '#007AFF' },
-  emptyText: { textAlign: 'center', color: '#888', marginTop: 30 },
-});
+const crearEstilos = (c) =>
+  StyleSheet.create({
+    container: { flex: 1, paddingHorizontal: 20, paddingTop: 20, backgroundColor: c.background },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
+    titulo: { fontSize: 22, fontWeight: 'bold', color: c.text },
+    btnAgregar: { backgroundColor: c.primary, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
+    btnTexto: { color: '#FFF', fontWeight: 'bold' },
+    card: { backgroundColor: c.card, padding: 14, borderRadius: 10, marginBottom: 10, elevation: 1 },
+    nombre: { fontSize: 16, fontWeight: 'bold', color: c.text },
+    telefono: { fontSize: 14, color: c.textSecondary, marginTop: 2 },
+    modalOverlay: { flex: 1, backgroundColor: c.overlay, justifyContent: 'center', alignItems: 'center' },
+    modalContainer: { width: '85%', backgroundColor: c.card, borderRadius: 12, padding: 20 },
+    modalTitulo: { fontSize: 18, fontWeight: 'bold', marginBottom: 15, color: c.text },
+    input: {
+      borderWidth: 1, borderColor: c.border, borderRadius: 8, padding: 10,
+      marginBottom: 12, color: c.text, backgroundColor: c.inputBg,
+    },
+    modalBotones: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 10 },
+    btnModal: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, marginLeft: 10 },
+    btnCancelar: { backgroundColor: c.btnSecondary },
+    btnGuardar: { backgroundColor: c.primary },
+    emptyText: { textAlign: 'center', color: c.textSecondary, marginTop: 30 },
+  });
