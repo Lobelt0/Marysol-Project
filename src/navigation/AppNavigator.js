@@ -5,6 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../services/supabase';
 import { useTheme } from '../theme/ThemeContext';
+import ReportesScreen from '../screens/ReportesScreen';
 
 import HomeScreen from '../screens/HomeScreen';
 import NuevoCorteScreen from '../screens/NuevoCorteScreen';
@@ -100,6 +101,7 @@ export default function AppNavigator() {
               NuevoCorte: focused ? 'add-circle' : 'add-circle-outline',
               Servicios: focused ? 'cut' : 'cut-outline',
               Clientes: focused ? 'people' : 'people-outline',
+              Reportes: focused ? 'stats-chart' : 'stats-chart-outline',
             };
             return <Ionicons name={iconos[route.name]} size={size} color={color} />;
           },
@@ -129,6 +131,7 @@ export default function AppNavigator() {
       >
         <Tab.Screen name="Inicio" component={HomeScreen} options={{ title: 'Resumen' }} />
         <Tab.Screen name="NuevoCorte" component={NuevoCorteScreen} options={{ title: '+ Registrar' }} />
+        <Tab.Screen name="Reportes" component={ReportesScreen} options={{ title: 'Reportes' }} />
         <Tab.Screen name="Servicios" component={ServiciosScreen} options={{ title: 'Servicios' }} />
         <Tab.Screen name="Clientes" component={ClientesScreen} options={{ title: 'Clientes' }} />
       </Tab.Navigator>
