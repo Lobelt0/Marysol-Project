@@ -198,7 +198,7 @@ export default function FichaCliente({ cliente, onCerrar, onCambio }) {
                     style={[styles.btn, { backgroundColor: colors.btnSecondary }]}
                     onPress={() => setEditando(true)}
                   >
-                + Registrar    <Ionicons name="create-outline" size={18} color={colors.btnSecondaryText} />
+                    <Ionicons name="create-outline" size={18} color={colors.btnSecondaryText} />
                     <Text style={{ color: colors.btnSecondaryText }}> Editar</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
